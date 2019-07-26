@@ -131,7 +131,7 @@ Q_network = Model(inputs = [matrix_input_layer], outputs = [out_layer])
 Q_network.summary()
 adam = Adam(lr = 0.001)
 Q_network.compile(loss='mse', optimizer=adam)
-plot_model(Q_network, to_file='model.png')
+#plot_model(Q_network, to_file='model.png')
 
 
 
@@ -140,13 +140,13 @@ Q_network2 = Model(inputs = [matrix_input_layer2], outputs = [out_layer2])
 Q_network2.summary()
 adam2 = Adam(lr = 0.001)
 Q_network2.compile(loss='mse', optimizer=adam2)
-plot_model(Q_network2, to_file='model2.png')
+#plot_model(Q_network2, to_file='model2.png')
 
-#print('loading pretrained model')
-#Q_network = load_model('Qnet_v3.h5')
-#Q_network2 = load_model('Qnet2_v3.h5')
-Q_network.compile(loss='mse', optimizer=adam)
-Q_network2.compile(loss='mse', optimizer=adam2)
+print('loading pretrained model')
+Q_network = load_model('Qnet_v3.h5')
+Q_network2 = load_model('Qnet2_v3.h5')
+#Q_network.compile(loss='mse', optimizer=adam)
+#Q_network2.compile(loss='mse', optimizer=adam2)
 
 def choose_action(state, direction, e = 0.9):
     #print("['RIGHT','LEFT', 'UP', 'DOWN']")
@@ -316,7 +316,7 @@ def store_experience(state, direction,action, reward, next_state, next_direction
     experience_buffer.append((state, direction ,action, reward, next_state, next_direction, flag))
 
     #string_set = string_set[0:30000]
-    experience_buffer = experience_buffer[0:130000]
+    experience_buffer = experience_buffer[0:400000]
 
 def remember_experience():
 
@@ -324,7 +324,7 @@ def remember_experience():
 
     gamma = 0.99
 
-    memories = sample(experience_buffer, min(13001, len(experience_buffer)))
+    memories = sample(experience_buffer, min(40001, len(experience_buffer)))
     next_states = [[experience[4], experience[5]] for experience in memories] 
     current_states = [[experience[0], experience[1]] for experience in memories]
     actions = [experience[2] for experience in memories]
