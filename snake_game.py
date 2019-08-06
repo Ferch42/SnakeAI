@@ -72,19 +72,19 @@ flatten_matrix = Flatten()(max_pool2)
 
 dropout_layer = Dropout(0.5)(flatten_matrix)
 
-dense1 = Dense(100, activation = 'relu', kernel_regularizer=regularizers.l2(0.1))(dropout_layer)
+dense1 = Dense(100, activation = 'relu', kernel_regularizer=regularizers.l2(0.1))(raw_classes_input_layer)
 #concatenated_layer = concatenate([dense1, direction_input_layer])
-#dropout1 = Dropout(0.5)(dense1)
-dense2 = Dense(100, activation = 'relu', kernel_regularizer=regularizers.l2(0.1))(dense1)
-#dropout2 = Dropout(0.5)(dense2)
-"""
+dropout1 = Dropout(0.5)(dense1)
+dense2 = Dense(100, activation = 'relu', kernel_regularizer=regularizers.l2(0.1))(dropout1)
+dropout2 = Dropout(0.5)(dense2)
+
 dense3 = Dense(100, activation = 'relu', kernel_regularizer=regularizers.l2(0.1))(dropout2)
 dropout3 = Dropout(0.5)(dense3)
 dense4 = Dense(100, activation = 'relu', kernel_regularizer=regularizers.l2(0.1))(dropout3)
 
 dropout4 = Dropout(0.5)(dense4)
-"""
-out_layer = Dense(4, activation = 'linear', kernel_regularizer=regularizers.l2(0.1))(dense2)
+
+out_layer = Dense(4, activation = 'linear', kernel_regularizer=regularizers.l2(0.1))(dropout4)
 """
 concatenated_layer = concatenate([raw_classes_input_layer, direction_input_layer])
 dense1 = Dense(300 , activation = 'relu', kernel_regularizer = regularizers.l2(0.01)) (concatenated_layer)
@@ -110,24 +110,24 @@ flatten_matrix2 = Flatten()(max_pool22)
 
 dropout_layer2 = Dropout(0.5)(flatten_matrix2)
 
-dense12 = Dense(100, activation = 'relu', kernel_regularizer=regularizers.l2(0.1))(dropout_layer2)
+dense12 = Dense(100, activation = 'relu', kernel_regularizer=regularizers.l2(0.1))(raw_classes_input_layer2)
 #concatenated_layer2 = concatenate([dense12, direction_input_layer2])
-#dropout12 = Dropout(0.5)(dense12)
-dense22 = Dense(100, activation = 'relu', kernel_regularizer=regularizers.l2(0.1))(dense12)
-#dropout22 = Dropout(0.5)(dense22)
-"""
+dropout12 = Dropout(0.5)(dense12)
+dense22 = Dense(100, activation = 'relu', kernel_regularizer=regularizers.l2(0.1))(dropout12)
+dropout22 = Dropout(0.5)(dense22)
+
 dense32 = Dense(100, activation = 'relu', kernel_regularizer=regularizers.l2(0.1))(dropout22)
 dropout32 = Dropout(0.5)(dense32)
 dense42 = Dense(100, activation = 'relu', kernel_regularizer=regularizers.l2(0.1))(dropout32)
 dropout42 = Dropout(0.5)(dense42)
-"""
-out_layer2 = Dense(4, activation = 'linear', kernel_regularizer=regularizers.l2(0.1))(dense22)
+
+out_layer2 = Dense(4, activation = 'linear', kernel_regularizer=regularizers.l2(0.1))(dropout42)
 
 
 
 
 #Q_network = Model(inputs = [matrix_input_layer, direction_input_layer], outputs = [out_layer])
-Q_network = Model(inputs = [matrix_input_layer], outputs = [out_layer])
+Q_network = Model(inputs = [raw_classes_input_layer], outputs = [out_layer])
 Q_network.summary()
 adam = Adam(lr = 0.001)
 Q_network.compile(loss='mse', optimizer=adam)
@@ -136,23 +136,23 @@ Q_network.compile(loss='mse', optimizer=adam)
 
 
 #Q_network2 = Model(inputs = [matrix_input_layer2, direction_input_layer2], outputs = [out_layer2])
-Q_network2 = Model(inputs = [matrix_input_layer2], outputs = [out_layer2])
+Q_network2 = Model(inputs = [raw_classes_input_layer2], outputs = [out_layer2])
 Q_network2.summary()
 adam2 = Adam(lr = 0.001)
 Q_network2.compile(loss='mse', optimizer=adam2)
 #plot_model(Q_network2, to_file='model2.png')
 
 print('loading pretrained model')
-Q_network = load_model('Qnet_v3.h5')
-Q_network2 = load_model('Qnet2_v3.h5')
-#Q_network.compile(loss='mse', optimizer=adam)
-#Q_network2.compile(loss='mse', optimizer=adam2)
+Q_network = load_model('Qnet_v4.h5')
+Q_network2 = load_model('Qnet2_v4.h5')
+Q_network.compile(loss='mse', optimizer=adam)
+Q_network2.compile(loss='mse', optimizer=adam2)
 
 def choose_action(state, direction, e = 0.9):
     #print("['RIGHT','LEFT', 'UP', 'DOWN']")
     
     #Q_values = Q_network.predict([np.array([state]), np.array([direction])])[0] + Q_network2.predict([np.array([state]), np.array([direction])])[0]
-    Q_values = Q_network.predict(np.array([state]))[0] + Q_network2.predict(np.array([state]))[0]
+    Q_values = Q_network.predict(np.array([state]))[0] # + Q_network2.predict(np.array([state]))[0]
     #print(Q_values)
     return e_greedy_policy(Q_values,e = e)
 
@@ -163,7 +163,7 @@ def choose_action(state, direction, e = 0.9):
 
 snakePos = [100, 50]
 snakeBody = [[100, 50], [90, 50], [80, 50]]
-foodPos = [400, 50]
+foodPos = [160, 160]
 foodSpawn = True
 direction = 'RIGHT'
 changeto = ''
@@ -258,8 +258,11 @@ def restartGame():
     snakeBody = [[random_init_pos_x, random_init_pos_y], [random_init_pos_x -delta, random_init_pos_y], [random_init_pos_x - 2*delta, random_init_pos_y]]
     """
 
-    snakePos, snakeBody = spawn_snake()
-    foodPos = [random.randrange(1, width // 10) * delta, random.randrange(1, height // 10) * delta]
+    #snakePos, snakeBody = spawn_snake()
+    snakePos = [100, 50]
+    snakeBody = [[100, 50], [90, 50], [80, 50]]
+    foodPos = [110, 60]
+    #foodPos = [random.randrange(1, width // 10) * delta, random.randrange(1, height // 10) * delta]
     foodSpawn = True
     direction = sample(directions_list,1)[0]
     #print (direction)
@@ -299,24 +302,24 @@ episode_count = 0
 accumulated_reward = 0
 
 experience_buffer = []
-#string_set = []
+string_set = []
 
-explorations_rates = [0.1]
+explorations_rates = [0.2]
 exploration_rate = sample(explorations_rates,1)[0]
 
 def store_experience(state, direction,action, reward, next_state, next_direction, flag):
 
-    global experience_buffer 
+    global experience_buffer, string_set
 
 
-    #hash_string = hash(str(state)+ str(direction)+str(action)+str(reward)+str(next_state)+str(next_direction)+str(flag))
-    #if hash_string not in string_set:
+    hash_string = hash(str(hash(state.tostring()))+str(action)+str(reward)+str(hash(next_state.tostring()))+str(flag))
+    if hash_string not in string_set:
 
-        #string_set.append(hash_string)
-    experience_buffer.append((state, direction ,action, reward, next_state, next_direction, flag))
+        string_set.append(hash_string)
+        experience_buffer.append((state, direction ,action, reward, next_state, next_direction, flag))
 
-    #string_set = string_set[0:30000]
-    experience_buffer = experience_buffer[0:400000]
+    string_set = string_set[0:50000]
+    experience_buffer = experience_buffer[0:50000]
 
 def remember_experience():
 
@@ -324,7 +327,7 @@ def remember_experience():
 
     gamma = 0.99
 
-    memories = sample(experience_buffer, min(40001, len(experience_buffer)))
+    memories = sample(experience_buffer, min(5000, len(experience_buffer)))
     next_states = [[experience[4], experience[5]] for experience in memories] 
     current_states = [[experience[0], experience[1]] for experience in memories]
     actions = [experience[2] for experience in memories]
@@ -417,9 +420,9 @@ while True:
     
     # AI choses the direction
      
-    current_state = get_snake_state()
+    current_state = get_snake_state_v2()
     current_direction = string_to_hotform(direction)
-    action = choose_action(current_state, current_direction, e = exploration_rate)
+    action = choose_action(current_state.flatten(), current_direction, e = exploration_rate)
     direction = directions_list[action]
     #print('direction ', direction)
 
@@ -434,18 +437,19 @@ while True:
         snakePos[1] -= delta
 
     # Snake body mechanism
-    reward =  1
+    reward =  0
     snakeBody.insert(0, list(snakePos))
 
     if snakePos == foodPos:
         foodSpawn = False
-        reward+=1000
+        reward+=100
         score += 1
     else:
         snakeBody.pop()
 
     if foodSpawn == False:
-        foodPos = [random.randrange(1, width // 10) * delta, random.randrange(1, height // 10) * delta]
+        #foodPos = [random.randrange(1, width // 10) * delta, random.randrange(1, height // 10) * delta]
+        foodPos = [110, 60]
         foodSpawn = True
 
     playSurface.fill(white)
@@ -487,25 +491,25 @@ while True:
         #Q_max = 0
         #remember_experience()
         exploration_rate = sample(explorations_rates,1)[0]
-        reward = -1000
+        #reward = -1000
         episode_count+=1
         accumulated_reward += reward
         reward_hist.append(accumulated_reward)
         accumulated_reward = 0
-        if episode_count % 100==0 :
+        if episode_count % 200==0 :
             remember_experience()
         if episode_count % 1000 == 0:
             print('saving, episodes passed', episode_count)
             mean = np.array(reward_hist).mean()
             print('mean reward ', mean)
             reward_hist = []
-            Q_network.save('Qnet_v3.h5')
-            Q_network2.save('Qnet2_v3.h5')
+            Q_network.save('Qnet_v4.h5')
+            Q_network2.save('Qnet2_v4.h5')
 
 
 
     #remember_experience()
-    next_state = get_snake_state()
+    next_state = get_snake_state_v2()
     next_direction = string_to_hotform(direction)
     store_experience(current_state, current_direction, action, reward, next_state, next_direction, flag)
     #Q_target[action] = reward + gamma * Q_max
