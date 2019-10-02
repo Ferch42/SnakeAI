@@ -5,9 +5,11 @@ Made with PyGame
 
 import pygame, sys, time, random
 import numpy as np
-from keras.models import Sequential
-from keras.layers import Dense, Conv2D, Flatten
 import keras
+from keras.models import Sequential, Model
+from keras.layers import Dense, Input, Lambda, Conv2D, Flatten, Dropout, Subtract, Add
+import keras.backend as K
+from keras import optimizers
 from keras.models import load_model
 import pickle
 # Difficulty settings
@@ -114,19 +116,49 @@ def show_score(choice, color, font, size):
 # Building the NN
 direction_list = ['UP', 'DOWN', 'RIGHT', 'LEFT']
 
+def reshape_layer(in_layer, out_dim):
+    
+    reshaping_matrix = K.ones((1, out_dim))
+    return Lambda(lambda x: K.dot(x, reshaping_matrix))(in_layer)
 
+
+###################################################
 #model = Sequential()
 #model.add(Conv2D(64, kernel_size=3, activation= 'relu', input_shape= (frame_size_x_simplified , frame_size_y_simplified ,1)))
 #model.add(Conv2D(32, kernel_size=3, activation='relu'))
 #model.add(Flatten())
 #model.add(Dense(4, activation='linear'))
-model = load_model('snake.h5')
-adam = keras.optimizers.Adam(lr=0.0001)
-model.compile(optimizer=adam, loss='mse')
+##################################################
 
+input_layer = Input(shape = (frame_size_x_simplified , frame_size_y_simplified ,1))
+conv1 = Conv2D(32, kernel_size = 3, activation = 'relu')(input_layer)
+conv2 = Conv2D(32, kernel_size = 3, activation = 'relu')(conv1)
+flatten = Flatten()(conv2)
+
+V_stream_dense1 = Dense(16, activation = 'relu')(flatten)
+#V_stream_dense2 = Dense(16, activation = 'relu')(V_stream_dense1)
+V_stream_out = Dense(1, activation = 'relu')(V_stream_dense1)
+V_stream = reshape_layer(V_stream_out, 4)
+
+A_stream_dense1 = Dense(16, activation = 'relu')(flatten)
+#A_stream_dense2 = Dense(16, activation = 'relu')(A_stream_dense1)
+A_stream_out = Dense(4, activation = 'relu')(A_stream_dense1)
+
+A_mean = Lambda(lambda x: K.mean(x, axis=1, keepdims = True))(A_stream_out)
+#A_mean = reshape_layer(A_mean, 4)
+
+A_stream = Subtract()([A_stream_out, A_mean])
+
+Q_stream = Add()([V_stream, A_stream])
+
+sgd = optimizers.SGD(lr=0.0000625, clipnorm = 10)
+model = Model(inputs= [input_layer], outputs = [Q_stream])
+model.compile(loss='mean_squared_error', optimizer=sgd)
 print(model.summary())
+
+
 model_copy= keras.models.clone_model(model)
-model_copy.compile(optimizer='adam', loss='mse')
+model_copy.compile(optimizer=sgd, loss='mse')
 model_copy.set_weights(model.get_weights())
 
 
@@ -249,7 +281,7 @@ def update_parameters():
 	
 
 	model_copy.set_weights(model.get_weights())
-	model.save('snake.h5')
+	model.save_weights('snake.h5')
 
 	#pickle.dump(replay_buffer, open('replay_buffer.pkl', 'wb'))
 	#pickle.dump(state_dict, open('state_dict.pkl', 'wb'))
