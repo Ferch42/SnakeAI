@@ -131,18 +131,18 @@ def reshape_layer(in_layer, out_dim):
 ##################################################
 
 input_layer = Input(shape = (frame_size_x_simplified , frame_size_y_simplified ,1))
-conv1 = Conv2D(32, kernel_size = 3, activation = 'relu')(input_layer)
-conv2 = Conv2D(32, kernel_size = 3, activation = 'relu')(conv1)
+conv1 = Conv2D(8, kernel_size = 3, activation = 'relu')(input_layer)
+conv2 = Conv2D(8, kernel_size = 3, activation = 'relu')(conv1)
 flatten = Flatten()(conv2)
 
-V_stream_dense1 = Dense(16, activation = 'relu')(flatten)
+V_stream_dense1 = Dense(4, activation = 'relu')(flatten)
 #V_stream_dense2 = Dense(16, activation = 'relu')(V_stream_dense1)
-V_stream_out = Dense(1, activation = 'relu')(V_stream_dense1)
+V_stream_out = Dense(1, activation = 'linear')(V_stream_dense1)
 V_stream = reshape_layer(V_stream_out, 4)
 
-A_stream_dense1 = Dense(16, activation = 'relu')(flatten)
+A_stream_dense1 = Dense(4, activation = 'relu')(flatten)
 #A_stream_dense2 = Dense(16, activation = 'relu')(A_stream_dense1)
-A_stream_out = Dense(4, activation = 'relu')(A_stream_dense1)
+A_stream_out = Dense(4, activation = 'linear')(A_stream_dense1)
 
 A_mean = Lambda(lambda x: K.mean(x, axis=1, keepdims = True))(A_stream_out)
 #A_mean = reshape_layer(A_mean, 4)
@@ -151,8 +151,9 @@ A_stream = Subtract()([A_stream_out, A_mean])
 
 Q_stream = Add()([V_stream, A_stream])
 
-sgd = optimizers.SGD(lr=0.0000625, clipnorm = 10)
+sgd = optimizers.SGD(lr=0.00001, clipnorm = 10)
 model = Model(inputs= [input_layer], outputs = [Q_stream])
+model.load_weights('snake.h5')
 model.compile(loss='mean_squared_error', optimizer=sgd)
 print(model.summary())
 
@@ -234,7 +235,7 @@ def get_state():
 
 
 # REPLAY BUFFER            
-replay_buffer_size = 32000
+replay_buffer_size = 100000
 replay_buffer = set()
 state_dict = dict()
 aux_value_dict = dict()
@@ -249,6 +250,11 @@ def train_nn(training_batch_size = 32, gamma = 0.99):
 	s_list = []
 	q_next_list =  model.predict(np.array([state_dict[x[0]] for x in training_batch]))
 	counter = 0
+
+	action_argmax = np.argmax(q_next_list, axis =1)
+	#print(q_next_list)
+	#print(action_argmax)
+
 	for s,a,r,ss,terminal in training_batch:
 
 		s_list.append(state_dict[s])
@@ -256,13 +262,15 @@ def train_nn(training_batch_size = 32, gamma = 0.99):
 		if ss not in aux_value_dict.keys():
 			ss_matrix = state_dict[ss]
 			target = model_copy.predict(np.array([ss_matrix]))[0]
-			aux_value_dict[ss] = target.max()
+			aux_value_dict[ss] = target
 
 		#q_next = model.predict(np.array([state_dict[ss]]))[0]
 		q_next = q_next_list[counter]
-		counter+=1
-		q_aux = aux_value_dict[ss]
 		
+		#q_aux = aux_value_dict[ss].max()
+		q_aux = aux_value_dict[ss][action_argmax[counter]]
+		counter+=1
+
 		if terminal:
 			q_aux = 0
 		
@@ -415,18 +423,19 @@ while True:
 
 		#average_score = (average_score*2+score)/3
 
-		if episode_count%10==0:
+		if episode_count%20==0:
 			print('-----------------------------------------------')
 			print('average rewardz ', np.array(scores).mean())
-			print('len replay_buffer ', len(replay_buffer))
+			#print('len replay_buffer ', len(replay_buffer))
 			scores = []
 		
-	if number_of_steps %5000==0:
+	if number_of_steps %1000==0:
 		update_parameters()
+		print('number of steps ', number_of_steps)
 		print('updating parameters')
 
 	show_score(1, white, 'consolas', 20)
 	# Refresh game screen
 	pygame.display.update()
 	# Refresh rate
-	fps_controller.tick(difficulty)
+	#fps_controller.tick(difficulty)
